@@ -30,12 +30,22 @@ class _HomeViewState extends ConsumerState<_HomeView> {
     super.initState();
 
     ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+    ref.read(popularMoviesProvider.notifier).loadNextPage();
+    ref.read(topRatedMoviesProvider.notifier).loadNextPage();
+    ref.read(upcomingMoviesProvider.notifier).loadNextPage();
   }
 
   @override
   Widget build(BuildContext context) {
-    final nowPlayingMovies = ref.watch(nowPlayingMoviesProvider);
+
+    final initialLoading = ref.watch(initialLoadingProvider);
+    if(initialLoading) return const FullScreenLoader();
+
     final slideShowMovies = ref.watch(moviesSlideshowProvider);
+    final nowPlayingMovies = ref.watch(nowPlayingMoviesProvider);
+    final popularMovies = ref.watch(popularMoviesProvider);
+    final topRateMovies = ref.watch(topRatedMoviesProvider);
+    final upcomingMovies = ref.watch(upcomingMoviesProvider);
 
     return CustomScrollView(
       slivers: [
@@ -64,29 +74,29 @@ class _HomeViewState extends ConsumerState<_HomeView> {
           ),
     
           MovieHorinzontalListview(
-            movies: nowPlayingMovies,
+            movies: upcomingMovies,
             title: 'Proximamente',
-            subTitle: 'En este Mes',
+            //subTitle: 'En este Mes',
             loadNextPage: () {
-              ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+              ref.read(upcomingMoviesProvider.notifier).loadNextPage();
             },
           ),
           
           MovieHorinzontalListview(
-            movies: nowPlayingMovies,
+            movies: popularMovies,
             title: 'Populares',
             //subTitle: 'En este Mes',
             loadNextPage: () {
-              ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+              ref.read(popularMoviesProvider.notifier).loadNextPage();
             },
           ),
     
           MovieHorinzontalListview(
-            movies: nowPlayingMovies,
+            movies: topRateMovies,
             title: 'Mejor Calificadas',
             subTitle: 'Este mes',
             loadNextPage: () {
-              ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+              ref.read(topRatedMoviesProvider.notifier).loadNextPage();
             },
           ),
 
@@ -94,7 +104,7 @@ class _HomeViewState extends ConsumerState<_HomeView> {
         ],
       );
         },
-        childCount: 10
+        childCount: 1
         )
       )
       ]
