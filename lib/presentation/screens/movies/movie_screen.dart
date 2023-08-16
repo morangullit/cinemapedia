@@ -79,7 +79,7 @@ class _MovieDatails extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: Image.network(
                   movie.posterPath,
-                  width: size.width * 0.4,
+                  width: size.width * 0.3,
                 ),
               ),
 
