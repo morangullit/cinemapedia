@@ -11,20 +11,23 @@ typedef SearchMoviesCallback = Future<List<Movie>> Function(String query);
 class SearchMovieDelegate extends SearchDelegate<Movie?>{
 
   final SearchMoviesCallback searchMovies;
-  final List<Movie> initialMovies;
+  List<Movie> initialMovies;
   StreamController<List<Movie>> debouncedMovies = StreamController.broadcast();
+  StreamController<bool> isLoadingStream = StreamController.broadcast();
   Timer? _debounceTimer;
 
   SearchMovieDelegate({
     required this.searchMovies,
     required this.initialMovies,
-  });
+  }): super(searchFieldLabel: 'Buscar Peículas');
 
   void clearStreams(){
     debouncedMovies.close();
   }
 
   void _onQueryChanged(String query) {
+
+    isLoadingStream.add(true);
 
     if(_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 500), () async{
@@ -34,28 +37,73 @@ class SearchMovieDelegate extends SearchDelegate<Movie?>{
       // }
 
       final movies = await searchMovies(query);
+      initialMovies = movies;
       debouncedMovies.add(movies);
+      isLoadingStream.add(false);
 
     });
   }
 
-  @override
-  String get searchFieldLabel => 'Buscar película';
+  Widget buildResultsAndSuggestions(){
+
+    return StreamBuilder(
+      initialData: initialMovies,
+      stream: debouncedMovies.stream,
+      builder: (context, snapshot) {
+
+        final movies = snapshot.data ?? [];
+        return ListView.builder(
+          itemCount: movies.length,
+          itemBuilder: (context, index) {
+            return _MovieItem(
+              movie: movies[index], 
+              onMovieSelected: (context, movie){
+                clearStreams();
+                close(context, movie);
+              },
+            );
+          },
+        );
+      }, 
+    );
+  }
+
+  // @override
+  // String get searchFieldLabel => 'Buscar película';
 
 
   @override
   List<Widget>? buildActions(BuildContext context) {
     return [
 
+      StreamBuilder(
+        initialData: false,
+        stream: isLoadingStream.stream,
+        builder: (context, snapshot) {
+          if(snapshot.data ?? false){
+           return SpinPerfect(
+              duration: const Duration(seconds: 20),
+              spins: 10,
+              infinite: true,
+              child: IconButton(
+                onPressed: () => query = '', 
+                icon: const Icon(Icons.refresh_outlined)
+              ),
+            );
+          }
+            return FadeIn(
+                animate: query.isNotEmpty,
+                duration: const Duration(milliseconds: 200),
+                child: IconButton(
+                  onPressed: () => query = '', 
+                  icon: const Icon(Icons.clear)
+                ),
+              );
+        },
+      ),
+
       //if(query.isNotEmpty)
-        FadeIn(
-          animate: query.isNotEmpty,
-          duration: const Duration(milliseconds: 200),
-          child: IconButton(
-            onPressed: () => query = '', 
-            icon: const Icon(Icons.clear)
-          ),
-        )
+
 
 
 
@@ -75,7 +123,10 @@ class SearchMovieDelegate extends SearchDelegate<Movie?>{
 
   @override
   Widget buildResults(BuildContext context) {
-    return const Text('buildResults');
+
+    return buildResultsAndSuggestions();
+
+    
   }
 
   @override
@@ -83,28 +134,7 @@ class SearchMovieDelegate extends SearchDelegate<Movie?>{
 
     _onQueryChanged(query);
 
-    return StreamBuilder(
-      //future: searchMovies(query),
-      initialData: initialMovies,
-      stream: debouncedMovies.stream,
-      builder: (context, snapshot) {
-
-        final movies = snapshot.data ?? [];
-
-        return ListView.builder(
-          itemCount: movies.length,
-          itemBuilder: (context, index) {
-            return _MovieItem(
-              movie: movies[index], 
-              onMovieSelected: (context, movie){
-                clearStreams();
-                close(context, movie);
-              },
-            );
-          },
-        );
-      }, 
-    );
+    return buildResultsAndSuggestions();
   }
 
 }
